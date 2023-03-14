@@ -31,8 +31,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late TextEditingController _nameTask;
+  final _formKey = GlobalKey<FormState>();
 
-  List<String> todos = [];
+  List<String> _todos = [];
 
   @override
   void initState() {
@@ -49,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void addTask(context) {
     if (_nameTask.text.isNotEmpty) {
       setState(() {
-        todos.add(_nameTask.text);
+        _todos.add(_nameTask.text);
       });
       _nameTask.clear();
     }
@@ -61,8 +62,8 @@ class _MyHomePageState extends State<MyHomePage> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text('Apagar tarefa!'),
-            content: const Text('Tem certeza que deseja apagar a tarefa?'),
+            title: const Text('Tem certeza?'),
+            content: const Text("Ao pressionar 'Sim' a tarefa será apagada!"),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
@@ -98,50 +99,68 @@ class _MyHomePageState extends State<MyHomePage> {
             horizontal: 20,
             vertical: 15,
           ),
-          child: Column(
-            children: <Widget>[
-              TextField(
-                controller: _nameTask,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Ex: Fazer tarefas...',
-                ),
-              ),
-              const SizedBox(
-                height: 50,
-              ),
-              Expanded(
-                child: ListView.separated(
-                  itemBuilder: (BuildContext context, int task) {
-                    return ListTile(
-                      title: Text(todos[task]),
-                      trailing: IconButton(
-                        icon: const Icon(
-                          Icons.delete_forever_rounded,
-                          color: Colors.red,
-                        ),
-                        onPressed: () async {
-                          final delete = await _showlDialog(context);
-
-                          if (delete) {
-                            setState(() {
-                              todos.removeAt(task);
-                            });
-                          }
-                        },
-                      ),
-                    );
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: <Widget>[
+                TextFormField(
+                  controller: _nameTask,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Ex: Fazer tarefas...',
+                  ),
+                  validator: (text) {
+                    if (text == null || text.isEmpty) {
+                      return 'Por favor informe a tarefa';
+                    }
+                    return null;
                   },
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemCount: todos.length,
                 ),
-              )
-            ],
+                const SizedBox(
+                  height: 50,
+                ),
+                _todos.isNotEmpty
+                    ? Expanded(
+                        child: ListView.separated(
+                          itemBuilder: (BuildContext context, int task) {
+                            return ListTile(
+                              title: Text(_todos[task]),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.delete_forever_rounded,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () async {
+                                  final delete = await _showlDialog(context);
+
+                                  if (delete) {
+                                    setState(() {
+                                      _todos.removeAt(task);
+                                    });
+                                  }
+                                },
+                              ),
+                            );
+                          },
+                          separatorBuilder: (_, __) => const Divider(),
+                          itemCount: _todos.length,
+                        ),
+                      )
+                    : const Text(
+                        'Sem tarefas salvas',
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+              ],
+            ),
           ),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            _nameTask.text.isEmpty ? null : addTask(context);
+            if (_formKey.currentState!.validate()) {
+              _nameTask.text.isEmpty ? null : addTask(context);
+            }
             FocusScope.of(context).unfocus();
           },
           tooltip: 'New task',
